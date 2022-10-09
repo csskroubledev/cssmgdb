@@ -12,6 +12,6 @@ Add this to `fxmanifest.lua`, in order to access MongoDB object
 ```
 server_script '@cssmgdb/server/MongoDB.lua'
 ```
-Now you can use MariaDB connector!
+Now you can use MongoDB connector!
 
 For more information visit [documentation](https://docs.csskrouble.me/)
