@@ -1,67 +1,65 @@
 MongoDB = {
+    Ready = false,
+    ReadyCallbacks = {},
     Async = {},
-    Sync = {}
+    Sync = {},
+    Connector = {}
 } 
 
 MongoDB.ready = function(cb) 
+    MongoDB.Ready = true
+    table.insert(MongoDB.ReadyCallbacks, cb)
     AddEventHandler("cssmgdb:ready", function() 
         cb()
     end)
 end
 
-MongoDB.Sync.find = function(collection, filter) 
-    local callback = nil
-    TriggerEvent("cssmgdb:find", collection, filter, function(cb) 
-        callback = cb
+CreateThread(function() 
+    Wait(400)
+    if MongoDB.Ready then return end
+    MongoDB.Ready = true
+    TriggerEvent("cssmgdb:verifyReady", function(b) 
+        if b then
+            for _,v in pairs(MongoDB.ReadyCallbacks) do
+                v()
+            end
+        end
     end)
-    while callback == nil do
-        Wait(20)
+end)
+
+MongoDB.Connector.CallSync = function(collection, funcName, data) 
+    local callbackData
+    TriggerEvent("cssmgdb:sync:connector", collection, funcName, data, function(data) 
+        callbackData = data
+    end)
+    while callbackData == nil do 
+        Wait(25)
     end
-    return callback
+    return callbackData
+end
+
+MongoDB.Connector.CallAsync = function(collection, funcName, data, cb) 
+    TriggerEvent("cssmgdb:async:connector", collection, funcName, data, cb)
+end
+
+MongoDB.Sync.find = function(collection, filter) 
+    return MongoDB.Connector.CallSync(collection, 'find', {filter})
 end
 
 MongoDB.Sync.findOne = function(collection, filter) 
-    local callback = nil
-    TriggerEvent("cssmgdb:findOne", collection, filter, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'findOne', {filter})
 end
 
 MongoDB.Sync.findOneAndUpdate = function(collection, filter, updateFilter) 
-    local callback = nil
-    TriggerEvent("cssmgdb:findOneAndUpdate", collection, filter, updateFilter, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'findOneAndUpdate', {filter, updateFilter})
 end
 
 MongoDB.Sync.findOneAndReplace = function(collection, filter, newObject) 
-    local callback = nil
-    TriggerEvent("cssmgdb:findOneAndReplace", collection, filter, newObject, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'findOneAndReplace', {filter, newObject})
 end
 
 MongoDB.Sync.findOneAndDelete = function(collection, filter) 
-    local callback = nil
-    TriggerEvent("cssmgdb:findOneAndDelete", collection, filter, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'findOneAndDelete', {filter})
 end
 
 MongoDB.Sync.replaceOne = MongoDB.Sync.findOneAndReplace
@@ -69,57 +67,33 @@ MongoDB.Sync.replaceOne = MongoDB.Sync.findOneAndReplace
 MongoDB.Sync.deleteOne = MongoDB.Sync.findOneAndDelete
 
 MongoDB.Sync.insertOne = function(collection, object) 
-    local callback = nil
-    TriggerEvent("cssmgdb:insertOne", collection, object, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'insertOne', {object})
 end
 
 MongoDB.Sync.insertMany = function(collection, objects) 
-    local callback = nil
-    TriggerEvent("cssmgdb:insertMany", collection, objects, function(cb) 
-        callback = cb
-    end)
-    while callback == nil do
-        Wait(20)
-    end
-    return callback
+    return MongoDB.Connector.CallSync(collection, 'insertMany', {objects})
 end
 
 -- Async
 
 MongoDB.Async.find = function(collection, filter, callback) 
-    TriggerEvent("cssmgdb:find", collection, filter, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'find', {filter}, callback)
 end
 
 MongoDB.Async.findOne = function(collection, filter, callback) 
-    TriggerEvent("cssmgdb:findOne", collection, filter, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'findOne', {filter}, callback)
 end
 
 MongoDB.Async.findOneAndUpdate = function(collection, filter, updateFilter, callback) 
-    TriggerEvent("cssmgdb:findOneAndUpdate", collection, filter, updateFilter, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'findOneAndUpdate', {filter, updateFilter}, callback)
 end
 
 MongoDB.Async.findOneAndReplace = function(collection, filter, newObject, callback) 
-    TriggerEvent("cssmgdb:findOneAndReplace", collection, filter, newObject, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'findOneAndReplace', {filter, newObject}, callback)
 end
 
 MongoDB.Async.findOneAndDelete = function(collection, filter, callback) 
-    TriggerEvent("cssmgdb:findOneAndDelete", collection, filter, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'findOneAndDelete', {filter}, callback)
 end
 
 MongoDB.Async.replaceOne = MongoDB.Async.findOneAndDelete
@@ -127,13 +101,9 @@ MongoDB.Async.replaceOne = MongoDB.Async.findOneAndDelete
 MongoDB.Async.deleteOne = MongoDB.Async.findOneAndDelete
 
 MongoDB.Async.insertOne = function(collection, object, callback) 
-    TriggerEvent("cssmgdb:insertOne", collection, object, function(cb) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'insertOne', {object}, callback)
 end
 
 MongoDB.Async.insertMany = function(collection, objects, callback) 
-    TriggerEvent("cssmgdb:insertMany", collection, objects, function(callback) 
-        callback(cb)
-    end)
+    MongoDB.Connector.CallAsync(collection, 'insertMany', {objects}, callback)
 end
