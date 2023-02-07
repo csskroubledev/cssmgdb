@@ -15,3 +15,7 @@ server_script '@cssmgdb/server/MongoDB.lua'
 Now you can use MongoDB connector!
 
 For more information visit [documentation](https://docs.csskrouble.me/)
+
+
+
+#### This library no longer will be maintained.
